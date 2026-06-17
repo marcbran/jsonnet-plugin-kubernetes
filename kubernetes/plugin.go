@@ -64,13 +64,13 @@ func buildConfig(contextName string) (*httpPlugin.Config, error) {
 	}
 
 	tlsCfg := &tls.Config{}
-	if len(restConfig.TLSClientConfig.CAData) > 0 {
+	if len(restConfig.CAData) > 0 {
 		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(restConfig.TLSClientConfig.CAData)
+		pool.AppendCertsFromPEM(restConfig.CAData)
 		tlsCfg.RootCAs = pool
 	}
-	if len(restConfig.TLSClientConfig.CertData) > 0 && len(restConfig.TLSClientConfig.KeyData) > 0 {
-		cert, err := tls.X509KeyPair(restConfig.TLSClientConfig.CertData, restConfig.TLSClientConfig.KeyData)
+	if len(restConfig.CertData) > 0 && len(restConfig.KeyData) > 0 {
+		cert, err := tls.X509KeyPair(restConfig.CertData, restConfig.KeyData)
 		if err != nil {
 			return nil, err
 		}
