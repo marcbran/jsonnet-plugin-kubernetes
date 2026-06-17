@@ -8,6 +8,6 @@ import (
 func Plugin() *jpoet.Plugin {
 	return jpoet.NewPlugin("kubernetes", []jsonnet.NativeFunction{
 		Contexts(),
-		Request(),
+		Get(),
 	})
 }
