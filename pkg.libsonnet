@@ -14,11 +14,9 @@ p.pkg({
   context: p.desc(|||
     Returns a context-bound object for making requests to a Kubernetes cluster.
     `ctx` is the kubectl context name.
-  |||, {
-    get: p.desc(|||
-      Sends a GET request to the Kubernetes API server at `path`.
 
-      On success returns parsed JSON. On failure returns a `Status` object (`kind: "Status"`).
-    |||),
-  }),
+    The returned object exposes `get(path)` which sends a GET request to the Kubernetes API server at `path`.
+
+    On success returns parsed JSON. On failure returns a `Status` object (`kind: "Status"`).
+  |||),
 })

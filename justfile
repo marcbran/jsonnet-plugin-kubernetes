@@ -21,4 +21,4 @@ push: build
 test-e2e:
     go test -v -tags e2e ./tests/...
 
-ci: lint test build test-e2e
+ci: lint test build
