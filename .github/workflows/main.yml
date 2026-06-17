@@ -35,8 +35,6 @@ jobs:
         with:
           repo: marcbran/jpoet
       - run: just ci
-      - run: just ci
-        working-directory: cmd/jsonnet-openapi
 
   release-please:
     needs: test
