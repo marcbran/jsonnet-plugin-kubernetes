@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.1.0...v0.2.0) (2026-07-12)
+
+
+### Features
+
+* contexts list function ([#10](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/10)) ([8e951b2](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/8e951b26f255a13098cd9e7ba518d4f71d21b397))
+* neat get ([#20](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/20)) ([5578323](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/55783235d5ea6e594d00a68536a7a2585c12ba3a))
+* specific get instead of broad request ([#12](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/12)) ([f1e2e96](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/f1e2e96185e8b237f2cb6f1538cf8e9673315c9a))
+
 ## [0.1.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.0.0...v0.1.0) (2026-06-17)
 
 
