@@ -32,10 +32,18 @@ func Get() jsonnet.NativeFunction {
 				return nil, err
 			}
 
-			return httpPlugin.Request(cfg).Func([]any{map[string]any{
+			out, err := httpPlugin.Request(cfg).Func([]any{map[string]any{
 				"method": "GET",
 				"path":   path,
 			}})
+			if err != nil {
+				return nil, err
+			}
+			envelope, ok := out.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("unexpected response shape")
+			}
+			return envelope["body"], nil
 		},
 	}
 }
