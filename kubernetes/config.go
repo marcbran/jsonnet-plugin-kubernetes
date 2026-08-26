@@ -25,7 +25,7 @@ func (c *configCache) get(contextName string) (*httpPlugin.Config, error) {
 	cfg, ok := c.cfgs[contextName]
 	if !ok {
 		var err error
-		cfg, err = buildConfig(contextName)
+		cfg, err = BuildConfig(contextName)
 		if err != nil {
 			return nil, fmt.Errorf("context %q: %w", contextName, err)
 		}
@@ -34,7 +34,7 @@ func (c *configCache) get(contextName string) (*httpPlugin.Config, error) {
 	return cfg, nil
 }
 
-func buildConfig(contextName string) (*httpPlugin.Config, error) {
+func BuildConfig(contextName string) (*httpPlugin.Config, error) {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	overrides := &clientcmd.ConfigOverrides{}
 	if contextName != "" {
