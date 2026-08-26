@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.2.0...v0.3.0) (2026-08-26)
+
+
+### Features
+
+* cmd to pull openapi specs ([#35](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/35)) ([057e151](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/057e151eb0dd8829b3fc04caa493b4c83af42c8e))
+* work with http response envelope ([#33](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/33)) ([c7701f8](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/c7701f8aa642f72c48020f1ab210e9475785b7d2))
+
 ## [0.2.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.1.0...v0.2.0) (2026-07-12)
 
 
