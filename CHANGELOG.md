@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.3.0...v0.4.0) (2026-08-29)
+
+
+### Features
+
+* dynamic and typed clients ([#36](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/36)) ([0a652ad](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/0a652ad9b1bd95627fad298b9788a89c53842ebf))
+* support field projections ([#38](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/38)) ([7a3eb21](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/7a3eb217090879bdc86f8555effaf9289139e331))
+
 ## [0.3.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.2.0...v0.3.0) (2026-08-26)
 
 
