@@ -5,9 +5,9 @@ go 1.26.0
 require (
 	github.com/google/go-jsonnet v0.22.0
 	github.com/marcbran/jpoet v0.19.0
-	github.com/marcbran/jsonnet-plugin-http v0.4.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
+	k8s.io/apimachinery v0.36.4
 	k8s.io/client-go v0.36.4
 )
 
@@ -43,7 +43,6 @@ require (
 	google.golang.org/grpc v1.83.1 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/apimachinery v0.36.4 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098 // indirect
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect

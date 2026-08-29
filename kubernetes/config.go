@@ -2,39 +2,40 @@ package kubernetes
 
 import (
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
-	httpPlugin "github.com/marcbran/jsonnet-plugin-http/http"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type configCache struct {
-	mu   sync.Mutex
-	cfgs map[string]*httpPlugin.Config
+type clientCache struct {
+	mu      sync.Mutex
+	clients map[string]dynamic.Interface
 }
 
-func newConfigCache() *configCache {
-	return &configCache{cfgs: map[string]*httpPlugin.Config{}}
+func newClientCache() *clientCache {
+	return &clientCache{clients: map[string]dynamic.Interface{}}
 }
 
-func (c *configCache) get(contextName string) (*httpPlugin.Config, error) {
+func (c *clientCache) get(contextName string) (dynamic.Interface, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	cfg, ok := c.cfgs[contextName]
+	client, ok := c.clients[contextName]
 	if !ok {
 		var err error
-		cfg, err = BuildConfig(contextName)
+		client, err = BuildClient(contextName)
 		if err != nil {
 			return nil, fmt.Errorf("context %q: %w", contextName, err)
 		}
-		c.cfgs[contextName] = cfg
+		c.clients[contextName] = client
 	}
-	return cfg, nil
+	return client, nil
 }
 
-func BuildConfig(contextName string) (*httpPlugin.Config, error) {
+func buildRestConfig(contextName string) (*rest.Config, error) {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	overrides := &clientcmd.ConfigOverrides{}
 	if contextName != "" {
@@ -45,15 +46,25 @@ func BuildConfig(contextName string) (*httpPlugin.Config, error) {
 		return nil, err
 	}
 	restConfig.Timeout = 30 * time.Second
+	return restConfig, nil
+}
 
-	client, err := rest.HTTPClientFor(restConfig)
+func BuildClient(contextName string) (dynamic.Interface, error) {
+	restConfig, err := buildRestConfig(contextName)
 	if err != nil {
 		return nil, err
 	}
+	return dynamic.NewForConfig(restConfig)
+}
 
-	return &httpPlugin.Config{
-		BaseURL: restConfig.Host,
-		Client:  client,
-		Headers: map[string]string{},
-	}, nil
+func BuildHTTPClient(contextName string) (*http.Client, string, error) {
+	restConfig, err := buildRestConfig(contextName)
+	if err != nil {
+		return nil, "", err
+	}
+	client, err := rest.HTTPClientFor(restConfig)
+	if err != nil {
+		return nil, "", err
+	}
+	return client, restConfig.Host, nil
 }

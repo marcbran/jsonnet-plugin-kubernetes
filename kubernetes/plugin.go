@@ -6,8 +6,10 @@ import (
 )
 
 func Plugin() *jpoet.Plugin {
+	cache := newClientCache()
 	return jpoet.NewPlugin("kubernetes", []jsonnet.NativeFunction{
 		Contexts(),
-		Get(),
+		Get(cache),
+		NeatGet(cache),
 	})
 }

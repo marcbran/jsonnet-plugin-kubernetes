@@ -15,11 +15,11 @@ type Client struct {
 }
 
 func NewClient(contextName string) (*Client, error) {
-	cfg, err := kubernetes.BuildConfig(contextName)
+	client, baseURL, err := kubernetes.BuildHTTPClient(contextName)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{baseURL: cfg.BaseURL, http: cfg.Client}, nil
+	return &Client{baseURL: baseURL, http: client}, nil
 }
 
 func (c *Client) Get(ctx context.Context, path string) ([]byte, error) {
