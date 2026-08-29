@@ -7,32 +7,38 @@ import (
 	"time"
 
 	"k8s.io/client-go/dynamic"
+	k8sclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+type clients struct {
+	dynamic dynamic.Interface
+	typed   k8sclientset.Interface
+}
+
 type clientCache struct {
 	mu      sync.Mutex
-	clients map[string]dynamic.Interface
+	clients map[string]*clients
 }
 
 func newClientCache() *clientCache {
-	return &clientCache{clients: map[string]dynamic.Interface{}}
+	return &clientCache{clients: map[string]*clients{}}
 }
 
-func (c *clientCache) get(contextName string) (dynamic.Interface, error) {
+func (c *clientCache) get(contextName string) (*clients, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	client, ok := c.clients[contextName]
+	cl, ok := c.clients[contextName]
 	if !ok {
 		var err error
-		client, err = BuildClient(contextName)
+		cl, err = BuildClients(contextName)
 		if err != nil {
 			return nil, fmt.Errorf("context %q: %w", contextName, err)
 		}
-		c.clients[contextName] = client
+		c.clients[contextName] = cl
 	}
-	return client, nil
+	return cl, nil
 }
 
 func buildRestConfig(contextName string) (*rest.Config, error) {
@@ -49,12 +55,20 @@ func buildRestConfig(contextName string) (*rest.Config, error) {
 	return restConfig, nil
 }
 
-func BuildClient(contextName string) (dynamic.Interface, error) {
+func BuildClients(contextName string) (*clients, error) {
 	restConfig, err := buildRestConfig(contextName)
 	if err != nil {
 		return nil, err
 	}
-	return dynamic.NewForConfig(restConfig)
+	dyn, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	typed, err := k8sclientset.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &clients{dynamic: dyn, typed: typed}, nil
 }
 
 func BuildHTTPClient(contextName string) (*http.Client, string, error) {

@@ -26,14 +26,14 @@ func parsePath(path string) (gvr schema.GroupVersionResource, namespace string, 
 }
 
 func parseResourcePath(gvr schema.GroupVersionResource, rest []string, path string) (schema.GroupVersionResource, string, string, error) {
-	namespace := ""
-	if len(rest) > 0 && rest[0] == "namespaces" {
-		if len(rest) < 2 {
-			return schema.GroupVersionResource{}, "", "", fmt.Errorf("missing namespace in kubernetes path: %q", path)
-		}
-		namespace = rest[1]
-		rest = rest[2:]
+	if len(rest) >= 3 && rest[0] == "namespaces" {
+		namespace := rest[1]
+		return finishResourcePath(gvr, namespace, rest[2:], path)
 	}
+	return finishResourcePath(gvr, "", rest, path)
+}
+
+func finishResourcePath(gvr schema.GroupVersionResource, namespace string, rest []string, path string) (schema.GroupVersionResource, string, string, error) {
 	switch len(rest) {
 	case 1:
 		gvr.Resource = rest[0]

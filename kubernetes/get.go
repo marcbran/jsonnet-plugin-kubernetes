@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/ast"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/marcbran/jsonnet-plugin-kubernetes/kubernetes/fetch"
 )
 
 func Get(cache *clientCache) jsonnet.NativeFunction {
@@ -15,7 +15,7 @@ func Get(cache *clientCache) jsonnet.NativeFunction {
 		Name:   "get",
 		Params: ast.Identifiers{"ctx", "path"},
 		Func: func(args []any) (any, error) {
-			return fetch(cache, args, false)
+			return doFetch(cache, args, false)
 		},
 	}
 }
@@ -25,12 +25,12 @@ func NeatGet(cache *clientCache) jsonnet.NativeFunction {
 		Name:   "neatGet",
 		Params: ast.Identifiers{"ctx", "path"},
 		Func: func(args []any) (any, error) {
-			return fetch(cache, args, true)
+			return doFetch(cache, args, true)
 		},
 	}
 }
 
-func fetch(cache *clientCache, args []any, neat bool) (any, error) {
+func doFetch(cache *clientCache, args []any, neat bool) (any, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("expected ctx and path")
 	}
@@ -43,7 +43,7 @@ func fetch(cache *clientCache, args []any, neat bool) (any, error) {
 		return nil, fmt.Errorf("path must be a string")
 	}
 
-	client, err := cache.get(contextName)
+	cl, err := cache.get(contextName)
 	if err != nil {
 		return nil, err
 	}
@@ -51,47 +51,20 @@ func fetch(cache *clientCache, args []any, neat bool) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	resource := client.Resource(gvr)
+	fetcher := fetch.For(cl.dynamic, cl.typed, gvr)
 	ctx := context.Background()
 
 	if name != "" {
-		var obj *unstructured.Unstructured
-		if namespace != "" {
-			obj, err = resource.Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
-		} else {
-			obj, err = resource.Get(ctx, name, metav1.GetOptions{})
-		}
+		out, err := fetcher.Get(ctx, namespace, name)
 		if err != nil {
 			return nil, err
 		}
-		out := obj.Object
-		if neat {
-			out = stripManagedFields(out)
-		}
-		return out, nil
+		return neatObject(out, neat), nil
 	}
 
-	var list *unstructured.UnstructuredList
-	if namespace != "" {
-		list, err = resource.Namespace(namespace).List(ctx, metav1.ListOptions{})
-	} else {
-		list, err = resource.List(ctx, metav1.ListOptions{})
-	}
+	envelope, err := fetcher.List(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
-	items := make([]any, len(list.Items))
-	for i, item := range list.Items {
-		out := item.Object
-		if neat {
-			out = stripManagedFields(out)
-		}
-		items[i] = out
-	}
-	envelope := make(map[string]any, len(list.Object)+1)
-	for k, v := range list.Object {
-		envelope[k] = v
-	}
-	envelope["items"] = items
-	return envelope, nil
+	return neatList(envelope, neat), nil
 }
