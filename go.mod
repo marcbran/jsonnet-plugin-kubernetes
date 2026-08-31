@@ -7,7 +7,7 @@ require (
 	github.com/marcbran/jpoet v0.19.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	k8s.io/apimachinery v0.36.4
+	k8s.io/apimachinery v0.37.0
 	k8s.io/client-go v0.36.4
 )
 
