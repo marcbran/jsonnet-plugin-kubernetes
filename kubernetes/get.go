@@ -1,36 +1,33 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/ast"
-
-	"github.com/marcbran/jsonnet-plugin-kubernetes/kubernetes/fetch"
 )
 
-func Get(cache *clientCache) jsonnet.NativeFunction {
+func Get(watch *watchCache) jsonnet.NativeFunction {
 	return jsonnet.NativeFunction{
 		Name:   "get",
 		Params: ast.Identifiers{"ctx", "path", "fields"},
 		Func: func(args []any) (any, error) {
-			return doFetch(cache, args, false)
+			return doFetch(watch, args, false)
 		},
 	}
 }
 
-func NeatGet(cache *clientCache) jsonnet.NativeFunction {
+func NeatGet(watch *watchCache) jsonnet.NativeFunction {
 	return jsonnet.NativeFunction{
 		Name:   "neatGet",
 		Params: ast.Identifiers{"ctx", "path", "fields"},
 		Func: func(args []any) (any, error) {
-			return doFetch(cache, args, true)
+			return doFetch(watch, args, true)
 		},
 	}
 }
 
-func doFetch(cache *clientCache, args []any, neat bool) (any, error) {
+func doFetch(watch *watchCache, args []any, neat bool) (any, error) {
 	if len(args) != 3 {
 		return nil, fmt.Errorf("expected ctx, path, and fields")
 	}
@@ -47,19 +44,13 @@ func doFetch(cache *clientCache, args []any, neat bool) (any, error) {
 		return nil, err
 	}
 
-	cl, err := cache.get(contextName)
-	if err != nil {
-		return nil, err
-	}
 	gvr, namespace, name, err := parsePath(path)
 	if err != nil {
 		return nil, err
 	}
-	fetcher := fetch.For(cl.dynamic, cl.typed, gvr)
-	ctx := context.Background()
 
 	if name != "" {
-		out, err := fetcher.Get(ctx, namespace, name)
+		out, err := watch.get(contextName, gvr, namespace, name)
 		if err != nil {
 			return nil, err
 		}
@@ -68,7 +59,7 @@ func doFetch(cache *clientCache, args []any, neat bool) (any, error) {
 		return out, nil
 	}
 
-	envelope, err := fetcher.List(ctx, namespace)
+	envelope, err := watch.list(contextName, gvr, namespace)
 	if err != nil {
 		return nil, err
 	}

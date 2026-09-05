@@ -6,10 +6,15 @@ import (
 )
 
 func Plugin() *jpoet.Plugin {
-	cache := newClientCache()
-	return jpoet.NewPlugin("kubernetes", []jsonnet.NativeFunction{
-		Contexts(),
-		Get(cache),
-		NeatGet(cache),
-	})
+	clients := newClientRegistry()
+	wc := newWatchCache(clients)
+	return jpoet.NewPlugin(
+		"kubernetes",
+		[]jsonnet.NativeFunction{
+			Contexts(),
+			Get(wc),
+			NeatGet(wc),
+		},
+		jpoet.WithWatchSource(wc),
+	).WithCloser(wc)
 }

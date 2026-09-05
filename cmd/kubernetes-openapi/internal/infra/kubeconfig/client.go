@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/marcbran/jsonnet-plugin-kubernetes/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type Client struct {
@@ -15,11 +16,15 @@ type Client struct {
 }
 
 func NewClient(contextName string) (*Client, error) {
-	client, baseURL, err := kubernetes.BuildHTTPClient(contextName)
+	restConfig, err := kubernetes.BuildRestConfig(contextName)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{baseURL: baseURL, http: client}, nil
+	client, err := rest.HTTPClientFor(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &Client{baseURL: restConfig.Host, http: client}, nil
 }
 
 func (c *Client) Get(ctx context.Context, path string) ([]byte, error) {
