@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.4.0...v0.5.0) (2026-09-05)
+
+
+### Features
+
+* watch support ([#43](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/43)) ([2b9ba7e](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/2b9ba7e1b5a2b50dbdf3894f8d0b2065598f16a7))
+
 ## [0.4.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.3.0...v0.4.0) (2026-08-29)
 
 
