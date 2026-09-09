@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.5.0...v0.6.0) (2026-09-09)
+
+
+### Features
+
+* plugin with options pattern ([#45](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/45)) ([243fc8f](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/243fc8ffd736dd93663bb1ed58732c64cfdade14))
+
 ## [0.5.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.4.0...v0.5.0) (2026-09-05)
 
 
