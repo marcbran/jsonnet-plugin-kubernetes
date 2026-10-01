@@ -277,24 +277,24 @@ func newDynamicInformer(dyn dynamic.Interface, key informerKey) cache.SharedInde
 	if key.namespace != "" {
 		namespaced := resource.Namespace(key.namespace)
 		listWatch = &cache.ListWatch{
-			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
+			ListWithContextFunc: func(ctx context.Context, opts metav1.ListOptions) (runtime.Object, error) {
 				tweak(&opts)
-				return namespaced.List(context.Background(), opts)
+				return namespaced.List(ctx, opts)
 			},
-			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
+			WatchFuncWithContext: func(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 				tweak(&opts)
-				return namespaced.Watch(context.Background(), opts)
+				return namespaced.Watch(ctx, opts)
 			},
 		}
 	} else {
 		listWatch = &cache.ListWatch{
-			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
+			ListWithContextFunc: func(ctx context.Context, opts metav1.ListOptions) (runtime.Object, error) {
 				tweak(&opts)
-				return resource.List(context.Background(), opts)
+				return resource.List(ctx, opts)
 			},
-			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
+			WatchFuncWithContext: func(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 				tweak(&opts)
-				return resource.Watch(context.Background(), opts)
+				return resource.Watch(ctx, opts)
 			},
 		}
 	}
