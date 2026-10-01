@@ -7,10 +7,13 @@ p.pkg({
   path: 'plugin/kubernetes',
   target: 'kubernetes',
 }, |||
-  Read-only Kubernetes API requests authenticated via kubectl contexts.
+  Kubernetes API access authenticated via kubectl contexts.
 
   Use `get(ctx, path)` to fetch resources from a cluster, or `contexts()` to list available kubectl contexts.
   The kubectl context resolves the API server URL and credentials automatically.
+
+  Mutating operations are exposed as plugin actions rather than jsonnet functions, so they are not
+  callable during evaluation. The host invokes them by name: `patch`, `delete`, and `restart`.
 |||, {
   contexts: p.desc(|||
     Returns all kubectl contexts from the local kubeconfig as an array.
