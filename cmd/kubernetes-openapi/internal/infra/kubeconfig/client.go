@@ -16,7 +16,7 @@ type Client struct {
 }
 
 func NewClient(contextName string) (*Client, error) {
-	restConfig, err := kubernetes.BuildRestConfig(contextName)
+	restConfig, err := kubernetes.BuildRestConfig(contextName, nil)
 	if err != nil {
 		return nil, err
 	}
