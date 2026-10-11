@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.7.0...v0.8.0) (2026-10-11)
+
+
+### Features
+
+* add auth by context option ([#54](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/54)) ([cd7d5e9](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/cd7d5e9d97de906b5ad0439df596ad969600e5ef))
+
 ## [0.7.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.6.0...v0.7.0) (2026-10-01)
 
 
