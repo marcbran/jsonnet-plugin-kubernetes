@@ -17,10 +17,11 @@ type clients struct {
 type clientRegistry struct {
 	mu      sync.Mutex
 	clients map[string]*clients
+	authFor AuthByContext
 }
 
-func newClientRegistry() *clientRegistry {
-	return &clientRegistry{clients: map[string]*clients{}}
+func newClientRegistry(authFor AuthByContext) *clientRegistry {
+	return &clientRegistry{clients: map[string]*clients{}, authFor: authFor}
 }
 
 func (c *clientRegistry) get(contextName string) (*clients, error) {
@@ -29,7 +30,7 @@ func (c *clientRegistry) get(contextName string) (*clients, error) {
 	cl, ok := c.clients[contextName]
 	if !ok {
 		var err error
-		cl, err = BuildClients(contextName)
+		cl, err = BuildClients(contextName, c.authFor)
 		if err != nil {
 			return nil, fmt.Errorf("context %q: %w", contextName, err)
 		}
@@ -38,8 +39,8 @@ func (c *clientRegistry) get(contextName string) (*clients, error) {
 	return cl, nil
 }
 
-func BuildClients(contextName string) (*clients, error) {
-	restConfig, err := BuildRestConfig(contextName)
+func BuildClients(contextName string, authFor AuthByContext) (*clients, error) {
+	restConfig, err := BuildRestConfig(contextName, authFor)
 	if err != nil {
 		return nil, err
 	}
@@ -50,16 +51,32 @@ func BuildClients(contextName string) (*clients, error) {
 	return &clients{dynamic: dyn}, nil
 }
 
-func BuildRestConfig(contextName string) (*rest.Config, error) {
+func BuildRestConfig(contextName string, authFor AuthByContext) (*rest.Config, error) {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	overrides := &clientcmd.ConfigOverrides{}
 	if contextName != "" {
 		overrides.CurrentContext = contextName
 	}
-	restConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).ClientConfig()
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides)
+	restConfig, err := clientConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 	restConfig.Timeout = 30 * time.Second
+	if authFor == nil {
+		return restConfig, nil
+	}
+	if contextName == "" {
+		rawConfig, err := clientConfig.RawConfig()
+		if err != nil {
+			return nil, err
+		}
+		contextName = rawConfig.CurrentContext
+	}
+	auth, err := authFor(contextName)
+	if err != nil {
+		return nil, fmt.Errorf("auth: %w", err)
+	}
+	auth.apply(restConfig)
 	return restConfig, nil
 }
