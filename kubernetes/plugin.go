@@ -44,7 +44,6 @@ func Plugin(opts ...Option) *jpoet.Plugin {
 		jpoet.WithCloser(wc),
 		jpoet.WithAction("patch", Patch(clients)),
 		jpoet.WithAction("delete", Delete(clients)),
-		jpoet.WithAction("restart", Restart(clients)),
 		jpoet.WithAction("exec", ExecAction(clients)),
 		jpoet.WithAction("proxy", ProxyAction(clients)),
 	}, cfg.pluginOpts...)

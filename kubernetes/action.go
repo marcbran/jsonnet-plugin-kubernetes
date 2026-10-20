@@ -4,15 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/marcbran/jpoet/pkg/jpoet"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 )
-
-const restartedAtAnnotation = "kubectl.kubernetes.io/restartedAt"
 
 var patchTypes = map[string]types.PatchType{
 	"strategic": types.StrategicMergePatchType,
@@ -39,30 +36,6 @@ func Patch(clients *clientRegistry) jpoet.ActionFunc {
 			return "", err
 		}
 		return applyPatch(ctx, resource, name, patchType, body)
-	}
-}
-
-func Restart(clients *clientRegistry) jpoet.ActionFunc {
-	return func(ctx context.Context, data map[string]any) (string, error) {
-		resource, name, err := resolveResource(clients, data)
-		if err != nil {
-			return "", err
-		}
-		body, err := json.Marshal(map[string]any{
-			"spec": map[string]any{
-				"template": map[string]any{
-					"metadata": map[string]any{
-						"annotations": map[string]any{
-							restartedAtAnnotation: time.Now().Format(time.RFC3339),
-						},
-					},
-				},
-			},
-		})
-		if err != nil {
-			return "", err
-		}
-		return applyPatch(ctx, resource, name, types.StrategicMergePatchType, body)
 	}
 }
 
