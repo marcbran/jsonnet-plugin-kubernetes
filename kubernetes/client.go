@@ -16,7 +16,7 @@ import (
 type clients struct {
 	config  *rest.Config
 	dynamic dynamic.Interface
-	core    rest.Interface
+	core    *rest.RESTClient
 }
 
 type clientRegistry struct {
@@ -60,7 +60,7 @@ func BuildClients(contextName string, authFor AuthByContext) (*clients, error) {
 	return &clients{config: restConfig, dynamic: dyn, core: core}, nil
 }
 
-func newCoreClient(restConfig *rest.Config) (rest.Interface, error) {
+func newCoreClient(restConfig *rest.Config) (*rest.RESTClient, error) {
 	cfg := rest.CopyConfig(restConfig)
 	cfg.APIPath = "/api"
 	cfg.GroupVersion = &schema.GroupVersion{Version: "v1"}

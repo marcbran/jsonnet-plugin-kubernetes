@@ -53,6 +53,7 @@ func Plugin(opts ...Option) *jpoet.Plugin {
 			Get(wc),
 			NeatGet(wc),
 			Exec(clients),
+			Proxy(clients),
 		},
 		allOpts...,
 	)
