@@ -73,7 +73,12 @@ func (c *watchCache) Close() error {
 	return nil
 }
 
-func (c *watchCache) InvocationKey(_ string, args []any) jpoetwatch.InvocationKey {
+func (c *watchCache) InvocationKey(funcName string, args []any) jpoetwatch.InvocationKey {
+	switch funcName {
+	case "get", "neatGet":
+	default:
+		return "kubernetes://unwatched"
+	}
 	if len(args) < 2 {
 		return "kubernetes://invalid"
 	}

@@ -5,13 +5,18 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 type clients struct {
+	config  *rest.Config
 	dynamic dynamic.Interface
+	core    rest.Interface
 }
 
 type clientRegistry struct {
@@ -48,7 +53,19 @@ func BuildClients(contextName string, authFor AuthByContext) (*clients, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &clients{dynamic: dyn}, nil
+	core, err := newCoreClient(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &clients{config: restConfig, dynamic: dyn, core: core}, nil
+}
+
+func newCoreClient(restConfig *rest.Config) (rest.Interface, error) {
+	cfg := rest.CopyConfig(restConfig)
+	cfg.APIPath = "/api"
+	cfg.GroupVersion = &schema.GroupVersion{Version: "v1"}
+	cfg.NegotiatedSerializer = serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
+	return rest.RESTClientFor(cfg)
 }
 
 func BuildRestConfig(contextName string, authFor AuthByContext) (*rest.Config, error) {
