@@ -1,8 +1,11 @@
 package kubernetes
 
 import (
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -190,12 +193,19 @@ func (c *watchCache) list(ctxName string, gvr schema.GroupVersionResource, names
 		return nil, err
 	}
 	stored := informer.GetStore().List()
-	items := make([]any, 0, len(stored))
+	objects := make([]*unstructured.Unstructured, 0, len(stored))
 	for _, obj := range stored {
 		u, ok := obj.(*unstructured.Unstructured)
 		if !ok {
 			continue
 		}
+		objects = append(objects, u)
+	}
+	slices.SortFunc(objects, func(a, b *unstructured.Unstructured) int {
+		return cmp.Or(cmp.Compare(a.GetNamespace(), b.GetNamespace()), cmp.Compare(a.GetName(), b.GetName()))
+	})
+	items := make([]any, 0, len(objects))
+	for _, u := range objects {
 		items = append(items, u.Object)
 	}
 	return map[string]any{
@@ -261,10 +271,26 @@ func (c *watchCache) startInformer(key informerKey) (cache.SharedIndexInformer, 
 	}
 
 	entryCtx, cancel := context.WithCancel(c.ctx)
+	syncCtx, syncCancel := context.WithCancelCause(entryCtx)
+	defer syncCancel(nil)
+	err = informer.SetWatchErrorHandlerWithContext(func(ctx context.Context, r *cache.Reflector, err error) {
+		if !informer.HasSynced() {
+			syncCancel(err)
+			return
+		}
+		cache.DefaultWatchErrorHandler(ctx, r, err)
+	})
+	if err != nil {
+		cancel()
+		return nil, nil, err
+	}
 	c.wg.Go(func() { informer.RunWithContext(entryCtx) })
 
-	if !cache.WaitForNamedCacheSyncWithContext(entryCtx, informer.HasSynced) {
+	if !cache.WaitForCacheSync(syncCtx.Done(), informer.HasSynced) {
 		cancel()
+		if cause := context.Cause(syncCtx); cause != nil && !errors.Is(cause, context.Canceled) {
+			return nil, nil, fmt.Errorf("watch %s %s (namespace %q): %w", key.context, key.gvr.String(), key.namespace, cause)
+		}
 		return nil, nil, fmt.Errorf("failed to sync watch for %s %s (namespace %q)", key.context, key.gvr.String(), key.namespace)
 	}
 
