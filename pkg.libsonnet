@@ -15,7 +15,7 @@ p.pkg({
   The kubectl context resolves the API server URL and credentials automatically.
 
   Mutating operations are exposed as plugin actions rather than jsonnet functions, so they are not
-  callable during evaluation. The host invokes them by name: `patch`, `delete`, and `restart`.
+  callable during evaluation. The host invokes them by name: `patch` and `delete`.
 
   `exec` and `proxy` are also available as actions, for commands or requests with side effects. They take
   the same parameters as the functions as named fields (`{ ctx, target, command }` and
