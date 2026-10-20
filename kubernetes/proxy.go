@@ -1,8 +1,10 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/ast"
+	"github.com/marcbran/jpoet/pkg/jpoet"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -52,12 +55,34 @@ func Proxy(clients *clientRegistry) jsonnet.NativeFunction {
 			if err != nil {
 				return nil, err
 			}
-			out, err := runProxy(clients, pi)
+			out, err := runProxy(context.Background(), clients, pi)
 			if err != nil {
 				return nil, err
 			}
 			return encodeOutput(out)
 		},
+	}
+}
+
+func ProxyAction(clients *clientRegistry) jpoet.ActionFunc {
+	return func(ctx context.Context, data map[string]any) (string, error) {
+		if _, ok := data["options"]; !ok {
+			data = maps.Clone(data)
+			data["options"] = map[string]any{}
+		}
+		args, err := actionArgs(data, "ctx", "target", "path", "options")
+		if err != nil {
+			return "", err
+		}
+		pi, err := parseProxyInput(args)
+		if err != nil {
+			return "", err
+		}
+		out, err := runProxy(ctx, clients, pi)
+		if err != nil {
+			return "", err
+		}
+		return encodeActionOutput(out)
 	}
 }
 
@@ -102,7 +127,7 @@ func parseProxyInput(args []any) (ProxyInput, error) {
 	return ProxyInput{Context: contextName, Target: target, Path: path, Options: options}, nil
 }
 
-func runProxy(clients *clientRegistry, pi ProxyInput) (ProxyOutput, error) {
+func runProxy(ctx context.Context, clients *clientRegistry, pi ProxyInput) (ProxyOutput, error) {
 	path, err := url.Parse(pi.Path)
 	if err != nil {
 		return ProxyOutput{}, fmt.Errorf("path: %w", err)
@@ -126,7 +151,7 @@ func runProxy(clients *clientRegistry, pi ProxyInput) (ProxyOutput, error) {
 	if pi.Options.Body != "" {
 		body = strings.NewReader(pi.Options.Body)
 	}
-	req, err := http.NewRequest(pi.Options.Method, u.String(), body)
+	req, err := http.NewRequestWithContext(ctx, pi.Options.Method, u.String(), body)
 	if err != nil {
 		return ProxyOutput{}, err
 	}

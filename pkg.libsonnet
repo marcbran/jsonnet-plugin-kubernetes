@@ -16,6 +16,10 @@ p.pkg({
 
   Mutating operations are exposed as plugin actions rather than jsonnet functions, so they are not
   callable during evaluation. The host invokes them by name: `patch`, `delete`, and `restart`.
+
+  `exec` and `proxy` are also available as actions, for commands or requests with side effects. They take
+  the same parameters as the functions as named fields (`{ ctx, target, command }` and
+  `{ ctx, target, path, options }`, with `options` optional) and return the same result as JSON.
 |||, {
   contexts: p.desc(|||
     Returns all kubectl contexts from the local kubeconfig as an array.

@@ -45,6 +45,8 @@ func Plugin(opts ...Option) *jpoet.Plugin {
 		jpoet.WithAction("patch", Patch(clients)),
 		jpoet.WithAction("delete", Delete(clients)),
 		jpoet.WithAction("restart", Restart(clients)),
+		jpoet.WithAction("exec", ExecAction(clients)),
+		jpoet.WithAction("proxy", ProxyAction(clients)),
 	}, cfg.pluginOpts...)
 	return jpoet.NewPlugin(
 		"kubernetes",
