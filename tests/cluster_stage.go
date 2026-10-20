@@ -32,10 +32,6 @@ func (s *Stage) a_cluster(contextName string) *Stage {
 		forbidden:   map[string]bool{},
 	}
 	c.server = httptest.NewServer(http.HandlerFunc(c.serve))
-	s.t.Cleanup(func() {
-		c.server.CloseClientConnections()
-		c.server.Close()
-	})
 	s.clusters = append(s.clusters, c)
 	s.writeKubeconfig()
 	return s

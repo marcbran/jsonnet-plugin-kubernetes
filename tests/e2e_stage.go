@@ -31,20 +31,24 @@ type Stage struct {
 func scenario(t *testing.T) (*Stage, *Stage, *Stage) {
 	facade, err := NewE2EFacade()
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = facade.Close()
-	})
 	s := &Stage{
 		t:       t,
 		facade:  facade,
 		tempDir: t.TempDir(),
 	}
-	t.Cleanup(func() {
-		if s.watchUnsubscribe != nil {
-			s.watchUnsubscribe()
-		}
-	})
+	t.Cleanup(s.close)
 	return s, s, s
+}
+
+func (s *Stage) close() {
+	if s.watchUnsubscribe != nil {
+		s.watchUnsubscribe()
+	}
+	_ = s.facade.Close()
+	for _, c := range s.clusters {
+		c.server.CloseClientConnections()
+		c.server.Close()
+	}
 }
 
 func (s *Stage) and() *Stage {
