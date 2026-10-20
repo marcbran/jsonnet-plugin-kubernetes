@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.8.0...v0.9.0) (2026-10-20)
+
+
+### Features
+
+* exec and proxy ([#58](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/58)) ([4f0ebdf](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/4f0ebdf2057ed91e1e99fd9fcb6c0840f8742719))
+* exec and proxy actions ([#61](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/61)) ([40f3e27](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/40f3e2702fe4924702caca106052f98245cb16ce))
+
+
+### Bug Fixes
+
+* forbidden watches ([#60](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/60)) ([bf0f20b](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/bf0f20b64caa9ea1354a1cf4356d765637e55643))
+* remove bespoke restart action ([#62](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/62)) ([6256f57](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/6256f57cc5fe66cd7a4051feec55c86bbb671f6f))
+
 ## [0.8.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.7.0...v0.8.0) (2026-10-11)
 
 
