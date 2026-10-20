@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/ast"
+	"github.com/marcbran/jpoet/pkg/jpoet"
 	"k8s.io/client-go/tools/remotecommand"
 	utilexec "k8s.io/client-go/util/exec"
 	"k8s.io/streaming/pkg/httpstream"
@@ -45,12 +46,30 @@ func Exec(clients *clientRegistry) jsonnet.NativeFunction {
 			if err != nil {
 				return nil, err
 			}
-			out, err := runExec(clients, ei)
+			out, err := runExec(context.Background(), clients, ei)
 			if err != nil {
 				return nil, err
 			}
 			return encodeOutput(out)
 		},
+	}
+}
+
+func ExecAction(clients *clientRegistry) jpoet.ActionFunc {
+	return func(ctx context.Context, data map[string]any) (string, error) {
+		args, err := actionArgs(data, "ctx", "target", "command")
+		if err != nil {
+			return "", err
+		}
+		ei, err := parseExecInput(args)
+		if err != nil {
+			return "", err
+		}
+		out, err := runExec(ctx, clients, ei)
+		if err != nil {
+			return "", err
+		}
+		return encodeActionOutput(out)
 	}
 }
 
@@ -82,7 +101,7 @@ func parseExecInput(args []any) (ExecInput, error) {
 	return ExecInput{Context: contextName, Target: target, Command: command}, nil
 }
 
-func runExec(clients *clientRegistry, ei ExecInput) (ExecOutput, error) {
+func runExec(ctx context.Context, clients *clientRegistry, ei ExecInput) (ExecOutput, error) {
 	cl, err := clients.get(ei.Context)
 	if err != nil {
 		return ExecOutput{}, err
@@ -107,7 +126,7 @@ func runExec(clients *clientRegistry, ei ExecInput) (ExecOutput, error) {
 		return ExecOutput{}, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), execTimeout)
+	ctx, cancel := context.WithTimeout(ctx, execTimeout)
 	defer cancel()
 
 	var stdout, stderr bytes.Buffer

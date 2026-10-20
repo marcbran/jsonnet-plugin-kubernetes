@@ -52,3 +52,44 @@ func TestEncodeOutput(t *testing.T) {
 		})
 	}
 }
+
+func TestActionArgs(t *testing.T) {
+	tests := []struct {
+		name      string
+		data      map[string]any
+		keys      []string
+		want      []any
+		wantError string
+	}{
+		{
+			name: "ordered by keys",
+			data: map[string]any{"command": []any{"echo"}, "ctx": "test-context", "target": map[string]any{"pod": "p"}},
+			keys: []string{"ctx", "target", "command"},
+			want: []any{"test-context", map[string]any{"pod": "p"}, []any{"echo"}},
+		},
+		{
+			name:      "missing key",
+			data:      map[string]any{"ctx": "test-context"},
+			keys:      []string{"ctx", "target"},
+			wantError: "target is required",
+		},
+		{
+			name:      "unknown key",
+			data:      map[string]any{"ctx": "test-context", "target": map[string]any{}, "cmd": []any{}},
+			keys:      []string{"ctx", "target"},
+			wantError: `unknown field "cmd"`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := actionArgs(tt.data, tt.keys...)
+			if tt.wantError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.wantError)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
