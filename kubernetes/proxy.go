@@ -15,17 +15,14 @@ import (
 
 const proxyMaxBodyBytes = 16 << 20
 
-func Proxy(clients *clientRegistry) jsonnet.NativeFunction {
-	return jsonnet.NativeFunction{
-		Name:   "proxy",
-		Params: ast.Identifiers{"ctx", "target", "path", "options"},
-		Func: func(args []any) (any, error) {
-			return doProxy(clients, args)
-		},
-	}
+type ProxyInput struct {
+	Context string
+	Target  ProxyTarget
+	Path    string
+	Options ProxyOptions
 }
 
-type proxyTarget struct {
+type ProxyTarget struct {
 	Namespace string             `json:"namespace"`
 	Service   string             `json:"service"`
 	Pod       string             `json:"pod"`
@@ -33,120 +30,145 @@ type proxyTarget struct {
 	Scheme    string             `json:"scheme"`
 }
 
-type proxyOptions struct {
+type ProxyOptions struct {
 	Method  string            `json:"method"`
 	Headers map[string]string `json:"headers"`
 	Body    string            `json:"body"`
 }
 
-func doProxy(clients *clientRegistry, args []any) (any, error) {
+type ProxyOutput struct {
+	Status     int               `json:"status"`
+	StatusText string            `json:"statusText"`
+	Headers    map[string]string `json:"headers"`
+	Body       string            `json:"body"`
+}
+
+func Proxy(clients *clientRegistry) jsonnet.NativeFunction {
+	return jsonnet.NativeFunction{
+		Name:   "proxy",
+		Params: ast.Identifiers{"ctx", "target", "path", "options"},
+		Func: func(args []any) (any, error) {
+			pi, err := parseProxyInput(args)
+			if err != nil {
+				return nil, err
+			}
+			out, err := runProxy(clients, pi)
+			if err != nil {
+				return nil, err
+			}
+			return encodeOutput(out)
+		},
+	}
+}
+
+func parseProxyInput(args []any) (ProxyInput, error) {
 	if len(args) != 4 {
-		return nil, fmt.Errorf("expected ctx, target, path, and options")
+		return ProxyInput{}, fmt.Errorf("expected ctx, target, path, and options")
 	}
 	contextName, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("ctx must be a string")
+		return ProxyInput{}, fmt.Errorf("ctx must be a string")
 	}
-	target, err := decodeArg[proxyTarget](args[1], "target")
+	target, err := decodeArg[ProxyTarget](args[1], "target")
 	if err != nil {
-		return nil, err
+		return ProxyInput{}, err
 	}
-	if err := target.validate(); err != nil {
-		return nil, err
+	if target.Namespace == "" {
+		return ProxyInput{}, fmt.Errorf("target.namespace is required")
 	}
-	rawPath, ok := args[2].(string)
+	if (target.Service == "") == (target.Pod == "") {
+		return ProxyInput{}, fmt.Errorf("target must set exactly one of service or pod")
+	}
+	switch target.Scheme {
+	case "", "http", "https":
+	default:
+		return ProxyInput{}, fmt.Errorf("target.scheme must be http or https")
+	}
+	path, ok := args[2].(string)
 	if !ok {
-		return nil, fmt.Errorf("path must be a string")
+		return ProxyInput{}, fmt.Errorf("path must be a string")
 	}
-	path, err := url.Parse(rawPath)
+	if _, err := url.Parse(path); err != nil {
+		return ProxyInput{}, fmt.Errorf("path: %w", err)
+	}
+	options, err := decodeArg[ProxyOptions](args[3], "options")
 	if err != nil {
-		return nil, fmt.Errorf("path: %w", err)
+		return ProxyInput{}, err
 	}
-	options, err := decodeArg[proxyOptions](args[3], "options")
+	if options.Method == "" {
+		options.Method = http.MethodGet
+	}
+	options.Method = strings.ToUpper(options.Method)
+	return ProxyInput{Context: contextName, Target: target, Path: path, Options: options}, nil
+}
+
+func runProxy(clients *clientRegistry, pi ProxyInput) (ProxyOutput, error) {
+	path, err := url.Parse(pi.Path)
 	if err != nil {
-		return nil, err
-	}
-	method := http.MethodGet
-	if options.Method != "" {
-		method = strings.ToUpper(options.Method)
+		return ProxyOutput{}, fmt.Errorf("path: %w", err)
 	}
 
-	cl, err := clients.get(contextName)
+	cl, err := clients.get(pi.Context)
 	if err != nil {
-		return nil, err
+		return ProxyOutput{}, err
 	}
 
 	u := cl.core.Get().
-		Namespace(target.Namespace).
-		Resource(target.resource()).
-		Name(target.segment()).
+		Namespace(pi.Target.Namespace).
+		Resource(pi.Target.resource()).
+		Name(pi.Target.segment()).
 		SubResource("proxy").
 		URL()
 	u.Path = strings.TrimSuffix(u.Path, "/") + "/" + strings.TrimPrefix(path.Path, "/")
 	u.RawQuery = path.RawQuery
 
 	var body io.Reader
-	if options.Body != "" {
-		body = strings.NewReader(options.Body)
+	if pi.Options.Body != "" {
+		body = strings.NewReader(pi.Options.Body)
 	}
-	req, err := http.NewRequest(method, u.String(), body)
+	req, err := http.NewRequest(pi.Options.Method, u.String(), body)
 	if err != nil {
-		return nil, err
+		return ProxyOutput{}, err
 	}
-	for k, v := range options.Headers {
+	for k, v := range pi.Options.Headers {
 		req.Header.Set(k, v)
 	}
 
 	resp, err := cl.core.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return ProxyOutput{}, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, proxyMaxBodyBytes+1))
 	if err != nil {
-		return nil, err
+		return ProxyOutput{}, err
 	}
 	if len(respBody) > proxyMaxBodyBytes {
-		return nil, fmt.Errorf("response body exceeds %d bytes", proxyMaxBodyBytes)
+		return ProxyOutput{}, fmt.Errorf("response body exceeds %d bytes", proxyMaxBodyBytes)
 	}
 
-	headers := make(map[string]any, len(resp.Header))
+	headers := make(map[string]string, len(resp.Header))
 	for k, v := range resp.Header {
 		headers[strings.ToLower(k)] = strings.Join(v, ", ")
 	}
 
-	return map[string]any{
-		"status":     float64(resp.StatusCode),
-		"statusText": strings.TrimPrefix(resp.Status, strconv.Itoa(resp.StatusCode)+" "),
-		"headers":    headers,
-		"body":       string(respBody),
+	return ProxyOutput{
+		Status:     resp.StatusCode,
+		StatusText: strings.TrimPrefix(resp.Status, strconv.Itoa(resp.StatusCode)+" "),
+		Headers:    headers,
+		Body:       string(respBody),
 	}, nil
 }
 
-func (t proxyTarget) validate() error {
-	if t.Namespace == "" {
-		return fmt.Errorf("target.namespace is required")
-	}
-	if (t.Service == "") == (t.Pod == "") {
-		return fmt.Errorf("target must set exactly one of service or pod")
-	}
-	switch t.Scheme {
-	case "", "http", "https":
-	default:
-		return fmt.Errorf("target.scheme must be http or https")
-	}
-	return nil
-}
-
-func (t proxyTarget) resource() string {
+func (t ProxyTarget) resource() string {
 	if t.Service != "" {
 		return "services"
 	}
 	return "pods"
 }
 
-func (t proxyTarget) segment() string {
+func (t ProxyTarget) segment() string {
 	name := t.Service + t.Pod
 	port := ""
 	if t.Port != (intstr.IntOrString{}) {

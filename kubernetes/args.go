@@ -19,3 +19,15 @@ func decodeArg[T any](arg any, name string) (T, error) {
 	}
 	return out, nil
 }
+
+func encodeOutput(v any) (any, error) {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var out any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
