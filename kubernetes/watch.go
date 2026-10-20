@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -261,10 +262,26 @@ func (c *watchCache) startInformer(key informerKey) (cache.SharedIndexInformer, 
 	}
 
 	entryCtx, cancel := context.WithCancel(c.ctx)
+	syncCtx, syncCancel := context.WithCancelCause(entryCtx)
+	defer syncCancel(nil)
+	err = informer.SetWatchErrorHandlerWithContext(func(ctx context.Context, r *cache.Reflector, err error) {
+		if !informer.HasSynced() {
+			syncCancel(err)
+			return
+		}
+		cache.DefaultWatchErrorHandler(ctx, r, err)
+	})
+	if err != nil {
+		cancel()
+		return nil, nil, err
+	}
 	c.wg.Go(func() { informer.RunWithContext(entryCtx) })
 
-	if !cache.WaitForNamedCacheSyncWithContext(entryCtx, informer.HasSynced) {
+	if !cache.WaitForCacheSync(syncCtx.Done(), informer.HasSynced) {
 		cancel()
+		if cause := context.Cause(syncCtx); cause != nil && !errors.Is(cause, context.Canceled) {
+			return nil, nil, fmt.Errorf("watch %s %s (namespace %q): %w", key.context, key.gvr.String(), key.namespace, cause)
+		}
 		return nil, nil, fmt.Errorf("failed to sync watch for %s %s (namespace %q)", key.context, key.gvr.String(), key.namespace)
 	}
 
