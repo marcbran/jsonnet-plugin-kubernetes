@@ -32,6 +32,14 @@ func WithHook(hook jpoet.InvokeHook) Option {
 	return WithPluginOption(jpoet.WithHook(hook))
 }
 
+func WithActionMiddleware(middleware ...jpoet.ActionMiddleware) Option {
+	return WithPluginOption(jpoet.WithActionMiddleware(middleware...))
+}
+
+func WithActionHook(hook jpoet.ActionHook) Option {
+	return WithPluginOption(jpoet.WithActionHook(hook))
+}
+
 func Plugin(opts ...Option) *jpoet.Plugin {
 	cfg := &Config{}
 	for _, o := range opts {
