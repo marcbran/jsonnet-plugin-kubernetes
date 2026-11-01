@@ -1,0 +1,107 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: jsonnet-plugin-kubernetes
+    binary: jsonnet-plugin-kubernetes
+    main: .
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+  - id: kubernetes-openapi
+    binary: kubernetes-openapi
+    main: ./cmd/kubernetes-openapi
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+
+archives:
+  - id: jsonnet-plugin-kubernetes
+    ids:
+      - jsonnet-plugin-kubernetes
+    formats: [tar.gz]
+    name_template: >-
+      {{ .Binary }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+  - id: kubernetes-openapi
+    ids:
+      - kubernetes-openapi
+    formats: [tar.gz]
+    name_template: >-
+      {{ .Binary }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+dockers:
+  - ids:
+      - kubernetes-openapi
+    dockerfile: cmd/kubernetes-openapi/Dockerfile
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "ghcr.io/marcbran/kubernetes-openapi:v{{ .Major }}"
+      - "ghcr.io/marcbran/kubernetes-openapi:v{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/marcbran/kubernetes-openapi:{{ .Tag }}"
+      - "ghcr.io/marcbran/kubernetes-openapi:latest"
+
+docker_digest:
+  name_template: "digests.txt"
+
+source:
+  enabled: true
+
+sboms:
+  - artifacts: archive
+  - id: source
+    artifacts: source
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).

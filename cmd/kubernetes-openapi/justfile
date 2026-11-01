@@ -1,9 +1,10 @@
+tool := "go tool -modfile=../../tools/go.mod"
 
 test:
     go test ./...
 
 lint:
-    golangci-lint run ./...
+    {{tool}} golangci-lint run ./...
 
 build:
     go build -o kubernetes-openapi .
