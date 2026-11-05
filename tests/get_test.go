@@ -43,6 +43,25 @@ func TestGetSingleResource(t *testing.T) {
 		the_output_is(`{"key": "value-b"}`)
 }
 
+func TestGetSingleResourceNotFound(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		a_cluster("test").and().
+		the_cluster_has("/api/v1/namespaces/default/configmaps", configMapA)
+
+	when.
+		the_jsonnet_is_evaluated(`
+			local k = import 'main.libsonnet';
+			local r = k.get('test', '/api/v1/namespaces/default/configmaps/missing');
+			r._failure
+		`)
+
+	then.
+		there_is_no_error().and().
+		the_output_is(`{"code": 404, "reason": "NotFound", "message": "configmaps \"missing\" not found"}`)
+}
+
 func TestGetForbidden(t *testing.T) {
 	cases := []struct {
 		name string
@@ -62,11 +81,13 @@ func TestGetForbidden(t *testing.T) {
 			when.
 				the_jsonnet_is_evaluated(`
 					local k = import 'main.libsonnet';
-					k.get('test', '` + tc.path + `')
+					local r = k.get('test', '` + tc.path + `');
+					{ code: r._failure.code, reason: r._failure.reason, forbidden: std.length(std.findSubstr('secrets is forbidden', r._failure.message)) > 0 }
 				`)
 
 			then.
-				the_error_contains(`secrets is forbidden`)
+				there_is_no_error().and().
+				the_output_is(`{"code": 403, "reason": "Forbidden", "forbidden": true}`)
 		})
 	}
 }
@@ -81,9 +102,11 @@ func TestWatchGetForbidden(t *testing.T) {
 	when.
 		the_jsonnet_is_watched(`
 			local k = import 'main.libsonnet';
-			k.get('test', '/api/v1/namespaces/default/secrets')
+			local r = k.get('test', '/api/v1/namespaces/default/secrets');
+			{ code: r._failure.code, reason: r._failure.reason, forbidden: std.length(std.findSubstr('secrets is forbidden', r._failure.message)) > 0 }
 		`)
 
 	then.
-		the_error_contains(`secrets is forbidden`)
+		there_is_no_error().and().
+		the_output_is(`{"code": 403, "reason": "Forbidden", "forbidden": true}`)
 }

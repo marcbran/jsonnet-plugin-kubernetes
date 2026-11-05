@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/ast"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type FetchInput struct {
@@ -20,9 +21,10 @@ func Get(watch *watchCache) jsonnet.NativeFunction {
 		Func: func(args []any) (any, error) {
 			fi, err := parseFetchInput(args)
 			if err != nil {
-				return nil, err
+				return nil, invalidArgs(err)
 			}
-			return runFetch(watch, fi, false)
+			out, err := runFetch(watch, fi, false)
+			return out, failure(err)
 		},
 	}
 }
@@ -34,9 +36,10 @@ func NeatGet(watch *watchCache) jsonnet.NativeFunction {
 		Func: func(args []any) (any, error) {
 			fi, err := parseFetchInput(args)
 			if err != nil {
-				return nil, err
+				return nil, invalidArgs(err)
 			}
-			return runFetch(watch, fi, true)
+			out, err := runFetch(watch, fi, true)
+			return out, failure(err)
 		},
 	}
 }
@@ -63,7 +66,7 @@ func parseFetchInput(args []any) (FetchInput, error) {
 func runFetch(watch *watchCache, fi FetchInput, neat bool) (any, error) {
 	gvr, namespace, name, err := parsePath(fi.Path)
 	if err != nil {
-		return nil, err
+		return nil, apierrors.NewBadRequest(err.Error())
 	}
 
 	if name != "" {
