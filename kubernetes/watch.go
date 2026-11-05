@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
@@ -175,7 +176,7 @@ func (c *watchCache) get(ctxName string, gvr schema.GroupVersionResource, namesp
 		return nil, err
 	}
 	if !exists {
-		return nil, fmt.Errorf("%s %q not found", gvr.Resource, name)
+		return nil, apierrors.NewNotFound(gvr.GroupResource(), name)
 	}
 	u, ok := obj.(*unstructured.Unstructured)
 	if !ok {

@@ -53,13 +53,14 @@ func Proxy(clients *clientRegistry) jsonnet.NativeFunction {
 		Func: func(args []any) (any, error) {
 			pi, err := parseProxyInput(args)
 			if err != nil {
-				return nil, err
+				return nil, invalidArgs(err)
 			}
 			out, err := runProxy(context.Background(), clients, pi)
 			if err != nil {
-				return nil, err
+				return nil, failure(err)
 			}
-			return encodeOutput(out)
+			encoded, err := encodeOutput(out)
+			return encoded, failure(err)
 		},
 	}
 }

@@ -23,9 +23,10 @@ func Contexts() jsonnet.NativeFunction {
 		Func: func(args []any) (any, error) {
 			out, err := runContexts()
 			if err != nil {
-				return nil, err
+				return nil, failure(err)
 			}
-			return encodeOutput(out)
+			encoded, err := encodeOutput(out)
+			return encoded, failure(err)
 		},
 	}
 }

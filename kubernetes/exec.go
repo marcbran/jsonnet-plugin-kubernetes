@@ -44,13 +44,14 @@ func Exec(clients *clientRegistry) jsonnet.NativeFunction {
 		Func: func(args []any) (any, error) {
 			ei, err := parseExecInput(args)
 			if err != nil {
-				return nil, err
+				return nil, invalidArgs(err)
 			}
 			out, err := runExec(context.Background(), clients, ei)
 			if err != nil {
-				return nil, err
+				return nil, failure(err)
 			}
-			return encodeOutput(out)
+			encoded, err := encodeOutput(out)
+			return encoded, failure(err)
 		},
 	}
 }
