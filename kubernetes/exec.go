@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/google/go-jsonnet"
-	"github.com/google/go-jsonnet/ast"
 	"github.com/marcbran/jpoet/pkg/jpoet"
 	"k8s.io/client-go/tools/remotecommand"
 	utilexec "k8s.io/client-go/util/exec"
@@ -37,16 +35,15 @@ type ExecOutput struct {
 	Stderr   string `json:"stderr"`
 }
 
-func Exec(clients *clientRegistry) jsonnet.NativeFunction {
-	return jsonnet.NativeFunction{
-		Name:   "exec",
-		Params: ast.Identifiers{"ctx", "target", "command"},
-		Func: func(args []any) (any, error) {
+func Exec(clients *clientRegistry) jpoet.Function {
+	return jpoet.Function{
+		Name: "exec",
+		Func: func(ctx context.Context, args []any) (any, error) {
 			ei, err := parseExecInput(args)
 			if err != nil {
 				return nil, invalidArgs(err)
 			}
-			out, err := runExec(context.Background(), clients, ei)
+			out, err := runExec(ctx, clients, ei)
 			if err != nil {
 				return nil, failure(err)
 			}

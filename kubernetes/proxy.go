@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-jsonnet"
-	"github.com/google/go-jsonnet/ast"
 	"github.com/marcbran/jpoet/pkg/jpoet"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -46,16 +44,15 @@ type ProxyOutput struct {
 	Body       string            `json:"body"`
 }
 
-func Proxy(clients *clientRegistry) jsonnet.NativeFunction {
-	return jsonnet.NativeFunction{
-		Name:   "proxy",
-		Params: ast.Identifiers{"ctx", "target", "path", "options"},
-		Func: func(args []any) (any, error) {
+func Proxy(clients *clientRegistry) jpoet.Function {
+	return jpoet.Function{
+		Name: "proxy",
+		Func: func(ctx context.Context, args []any) (any, error) {
 			pi, err := parseProxyInput(args)
 			if err != nil {
 				return nil, invalidArgs(err)
 			}
-			out, err := runProxy(context.Background(), clients, pi)
+			out, err := runProxy(ctx, clients, pi)
 			if err != nil {
 				return nil, failure(err)
 			}
