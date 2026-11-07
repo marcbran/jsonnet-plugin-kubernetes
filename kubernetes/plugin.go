@@ -48,6 +48,12 @@ func Plugin(opts ...Option) *jpoet.Plugin {
 	clients := newClientRegistry(cfg.AuthByContext)
 	wc := newWatchCache(clients)
 	allOpts := append([]jpoet.PluginOption{
+		jpoet.WithFunctions(
+			Get(wc),
+			NeatGet(wc),
+			Exec(clients),
+			Proxy(clients),
+		),
 		jpoet.WithWatchSource(wc),
 		jpoet.WithCloser(wc),
 		jpoet.WithAction("patch", Patch(clients)),
@@ -59,10 +65,6 @@ func Plugin(opts ...Option) *jpoet.Plugin {
 		"kubernetes",
 		[]jsonnet.NativeFunction{
 			Contexts(),
-			Get(wc),
-			NeatGet(wc),
-			Exec(clients),
-			Proxy(clients),
 		},
 		allOpts...,
 	)

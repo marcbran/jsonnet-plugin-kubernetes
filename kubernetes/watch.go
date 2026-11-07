@@ -118,7 +118,7 @@ func (c *watchCache) Acquire(key jpoetwatch.InvocationKey) (func(), error) {
 		}
 	}
 
-	if _, err := c.informerFor(target); err != nil {
+	if _, err := c.informerFor(c.ctx, target); err != nil {
 		return nil, err
 	}
 	release := c.hold(target)
@@ -159,11 +159,11 @@ func (c *watchCache) release(key informerKey) {
 	}
 }
 
-func (c *watchCache) get(ctxName string, gvr schema.GroupVersionResource, namespace, name string) (map[string]any, error) {
+func (c *watchCache) get(ctx context.Context, ctxName string, gvr schema.GroupVersionResource, namespace, name string) (map[string]any, error) {
 	if err := c.ctx.Err(); err != nil {
 		return nil, err
 	}
-	informer, err := c.informerForGet(ctxName, gvr, namespace, name)
+	informer, err := c.informerForGet(ctx, ctxName, gvr, namespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -185,11 +185,11 @@ func (c *watchCache) get(ctxName string, gvr schema.GroupVersionResource, namesp
 	return u.Object, nil
 }
 
-func (c *watchCache) list(ctxName string, gvr schema.GroupVersionResource, namespace string) (map[string]any, error) {
+func (c *watchCache) list(ctx context.Context, ctxName string, gvr schema.GroupVersionResource, namespace string) (map[string]any, error) {
 	if err := c.ctx.Err(); err != nil {
 		return nil, err
 	}
-	informer, err := c.informerFor(informerKey{context: ctxName, gvr: gvr, namespace: namespace})
+	informer, err := c.informerFor(ctx, informerKey{context: ctxName, gvr: gvr, namespace: namespace})
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (c *watchCache) list(ctxName string, gvr schema.GroupVersionResource, names
 	}, nil
 }
 
-func (c *watchCache) informerForGet(ctxName string, gvr schema.GroupVersionResource, namespace, name string) (cache.SharedIndexInformer, error) {
+func (c *watchCache) informerForGet(ctx context.Context, ctxName string, gvr schema.GroupVersionResource, namespace, name string) (cache.SharedIndexInformer, error) {
 	listKey := informerKey{context: ctxName, gvr: gvr, namespace: namespace}
 	c.mu.Lock()
 	entry, ok := c.entries[listKey]
@@ -224,27 +224,33 @@ func (c *watchCache) informerForGet(ctxName string, gvr schema.GroupVersionResou
 	if ok {
 		return entry.informer, nil
 	}
-	return c.informerFor(informerKey{context: ctxName, gvr: gvr, namespace: namespace, name: name})
+	return c.informerFor(ctx, informerKey{context: ctxName, gvr: gvr, namespace: namespace, name: name})
 }
 
-func (c *watchCache) informerFor(key informerKey) (cache.SharedIndexInformer, error) {
+func (c *watchCache) informerFor(ctx context.Context, key informerKey) (cache.SharedIndexInformer, error) {
 	c.mu.Lock()
 	if entry, ok := c.entries[key]; ok {
 		c.mu.Unlock()
 		return entry.informer, nil
 	}
-	if pending, ok := c.pending[key]; ok {
-		c.mu.Unlock()
-		<-pending.done
-		return pending.informer, pending.err
+	pending, ok := c.pending[key]
+	if !ok {
+		pending = &pendingEntry{done: make(chan struct{})}
+		c.pending[key] = pending
+		c.wg.Go(func() { c.resolve(key, pending) })
 	}
-	pending := &pendingEntry{done: make(chan struct{})}
-	c.pending[key] = pending
 	c.mu.Unlock()
 
+	select {
+	case <-pending.done:
+		return pending.informer, pending.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+func (c *watchCache) resolve(key informerKey, pending *pendingEntry) {
 	informer, cancel, err := c.startInformer(key)
-	pending.informer, pending.err = informer, err
-	close(pending.done)
 
 	c.mu.Lock()
 	delete(c.pending, key)
@@ -253,7 +259,8 @@ func (c *watchCache) informerFor(key informerKey) (cache.SharedIndexInformer, er
 	}
 	c.mu.Unlock()
 
-	return informer, err
+	pending.informer, pending.err = informer, err
+	close(pending.done)
 }
 
 func (c *watchCache) startInformer(key informerKey) (cache.SharedIndexInformer, context.CancelFunc, error) {

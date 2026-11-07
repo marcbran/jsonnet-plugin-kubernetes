@@ -1,10 +1,10 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/google/go-jsonnet"
-	"github.com/google/go-jsonnet/ast"
+	"github.com/marcbran/jpoet/pkg/jpoet"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -14,31 +14,29 @@ type FetchInput struct {
 	Fields  []string
 }
 
-func Get(watch *watchCache) jsonnet.NativeFunction {
-	return jsonnet.NativeFunction{
-		Name:   "get",
-		Params: ast.Identifiers{"ctx", "path", "fields"},
-		Func: func(args []any) (any, error) {
+func Get(watch *watchCache) jpoet.Function {
+	return jpoet.Function{
+		Name: "get",
+		Func: func(ctx context.Context, args []any) (any, error) {
 			fi, err := parseFetchInput(args)
 			if err != nil {
 				return nil, invalidArgs(err)
 			}
-			out, err := runFetch(watch, fi, false)
+			out, err := runFetch(ctx, watch, fi, false)
 			return out, failure(err)
 		},
 	}
 }
 
-func NeatGet(watch *watchCache) jsonnet.NativeFunction {
-	return jsonnet.NativeFunction{
-		Name:   "neatGet",
-		Params: ast.Identifiers{"ctx", "path", "fields"},
-		Func: func(args []any) (any, error) {
+func NeatGet(watch *watchCache) jpoet.Function {
+	return jpoet.Function{
+		Name: "neatGet",
+		Func: func(ctx context.Context, args []any) (any, error) {
 			fi, err := parseFetchInput(args)
 			if err != nil {
 				return nil, invalidArgs(err)
 			}
-			out, err := runFetch(watch, fi, true)
+			out, err := runFetch(ctx, watch, fi, true)
 			return out, failure(err)
 		},
 	}
@@ -63,14 +61,14 @@ func parseFetchInput(args []any) (FetchInput, error) {
 	return FetchInput{Context: contextName, Path: path, Fields: fields}, nil
 }
 
-func runFetch(watch *watchCache, fi FetchInput, neat bool) (any, error) {
+func runFetch(ctx context.Context, watch *watchCache, fi FetchInput, neat bool) (any, error) {
 	gvr, namespace, name, err := parsePath(fi.Path)
 	if err != nil {
 		return nil, apierrors.NewBadRequest(err.Error())
 	}
 
 	if name != "" {
-		out, err := watch.get(fi.Context, gvr, namespace, name)
+		out, err := watch.get(ctx, fi.Context, gvr, namespace, name)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +77,7 @@ func runFetch(watch *watchCache, fi FetchInput, neat bool) (any, error) {
 		return out, nil
 	}
 
-	envelope, err := watch.list(fi.Context, gvr, namespace)
+	envelope, err := watch.list(ctx, fi.Context, gvr, namespace)
 	if err != nil {
 		return nil, err
 	}
