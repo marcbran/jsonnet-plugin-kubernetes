@@ -94,8 +94,3 @@ func (s *Stage) the_output_is(expected string) *Stage {
 	assert.JSONEq(s.t, expected, s.LastOutput)
 	return s
 }
-
-func (s *Stage) the_error_contains(expected string) *Stage {
-	assert.Contains(s.t, s.LastError, expected)
-	return s
-}
