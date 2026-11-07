@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.10.0...v0.11.0) (2026-11-07)
+
+
+### Features
+
+* pass the evaluation context to plugin calls ([#72](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/72)) ([283acd5](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/283acd5d0130423c8f594121ced4498cb76041f8))
+
 ## [0.10.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.9.0...v0.10.0) (2026-11-05)
 
 
