@@ -29,7 +29,7 @@ func NewE2EFacade() (Facade, error) {
 	plugin := kubernetes.Plugin()
 	env, err := watch.New(jpoet.Env(
 		jpoet.EnvWithPlugin(plugin),
-		jpoet.EnvFileImport([]string{".."}),
+		jpoet.EnvFileImport([]string{"../pkg/jsonnet-plugin-kubernetes"}),
 	))
 	if err != nil {
 		return nil, errors.Join(err, plugin.Close())

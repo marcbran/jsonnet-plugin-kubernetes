@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "dependencies": [
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/marcbran/jsonnet.git",
+          "subdir": "arcourse/arcourse-ui"
+        }
+      },
+      "version": "arcourse/arcourse-ui"
+    },
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/marcbran/jsonnet.git",
+          "subdir": "plugin/jsonnet"
+        }
+      },
+      "version": "plugin/jsonnet"
+    },
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/marcbran/jsonnet.git",
+          "subdir": "plugin/time"
+        }
+      },
+      "version": "plugin/time"
+    }
+  ],
+  "legacyImports": true
+}

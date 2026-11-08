@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": [
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/marcbran/jsonnet.git",
+          "subdir": "arcourse/arcourse-telemetry"
+        }
+      },
+      "version": "3ee3522618897188ccd2a8920b1bb4480400460c",
+      "sum": "MYnoFEulFrqgHXYZQ3aG+3dEfBQ/OAjfHH9n/xh6bk4="
+    }
+  ],
+  "legacyImports": false
+}

@@ -1,7 +1,7 @@
 local p = import 'pkg/main.libsonnet';
 
 p.pkg({
-  source: 'https://github.com/marcbran/jsonnet-plugin-kubernetes',
+  source: 'https://github.com/marcbran/jsonnet-plugin-kubernetes/tree/main/pkg/jsonnet-plugin-kubernetes',
   repo: 'https://github.com/marcbran/jsonnet.git',
   branch: 'plugin/kubernetes',
   path: 'plugin/kubernetes',
