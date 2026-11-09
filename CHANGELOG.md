@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.11.0...v0.12.0) (2026-11-09)
+
+
+### Features
+
+* add arcourse-kubernetes and arcourse-telemetry-kubernetes packages ([#76](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/76)) ([92dfb96](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/92dfb961a58392543e79c5bafe94bf67d6ff69ff))
+
 ## [0.11.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.10.0...v0.11.0) (2026-11-07)
 
 
