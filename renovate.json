@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":semanticCommitTypeAll(chore)"],
+  "dependencyDashboard": false,
+  "prHourlyLimit": 0,
+  "automergeStrategy": "squash",
+  "postUpdateOptions": ["gomodTidy"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "automerge": true
+    }
+  ]
+}
