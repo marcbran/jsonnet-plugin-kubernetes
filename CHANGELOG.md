@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.11.0...v0.12.0) (2026-11-19)
+
+
+### Features
+
+* add arcourse-kubernetes and arcourse-telemetry-kubernetes packages ([#76](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/76)) ([92dfb96](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/92dfb961a58392543e79c5bafe94bf67d6ff69ff))
+* add label and field selector filters to list nodes ([#80](https://github.com/marcbran/jsonnet-plugin-kubernetes/issues/80)) ([6adbf9c](https://github.com/marcbran/jsonnet-plugin-kubernetes/commit/6adbf9c36f1518bb5077bc0079acc655a4140a5e))
+
 ## [0.11.0](https://github.com/marcbran/jsonnet-plugin-kubernetes/compare/v0.10.0...v0.11.0) (2026-11-07)
 
 
