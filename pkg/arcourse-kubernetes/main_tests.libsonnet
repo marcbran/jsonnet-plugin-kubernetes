@@ -161,7 +161,7 @@ local applyTargetChain(apply) = [apply.target.id, apply.target.target.id, apply.
         },
       expected: {
         kind: ['node', 'table', 'a'],
-        fieldNames: ['response', 'data', 'linkSpecs', 'table'],
+        fieldNames: ['response', 'data', 'linkSpecs', '_paramSpecs', 'table'],
         dataHide: 0,
         columnLabels: ['Name'],
       },

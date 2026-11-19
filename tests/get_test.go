@@ -25,6 +25,27 @@ func TestGetList(t *testing.T) {
 		the_output_is(`["value-a", "value-b"]`)
 }
 
+func TestGetListWithLabelSelector(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		a_cluster("test").and().
+		the_cluster_has("/api/v1/namespaces/default/configmaps",
+			`{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"a","namespace":"default","labels":{"app":"api"}},"data":{"key":"value-a"}}`,
+			`{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"b","namespace":"default","labels":{"app":"db"}},"data":{"key":"value-b"}}`,
+		)
+
+	when.
+		the_jsonnet_is_evaluated(`
+			local k = import 'main.libsonnet';
+			[item.data.key for item in k.get('test', '/api/v1/namespaces/default/configmaps', [], { labelSelector: 'app=api' }).items]
+		`)
+
+	then.
+		there_is_no_error().and().
+		the_output_is(`["value-a"]`)
+}
+
 func TestGetSingleResource(t *testing.T) {
 	given, when, then := scenario(t)
 

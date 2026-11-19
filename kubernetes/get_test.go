@@ -26,7 +26,22 @@ func TestParseFetchInput(t *testing.T) {
 		{
 			name:      "wrong arg count",
 			args:      []any{"test-context", "/api/v1/pods"},
-			wantError: "expected ctx, path, and fields",
+			wantError: "expected ctx, path, fields, and optional options",
+		},
+		{
+			name: "with selectors",
+			args: []any{"test-context", "/api/v1/pods", []any{}, map[string]any{"labelSelector": "app=api", "fieldSelector": "status.phase=Running"}},
+			want: FetchInput{Context: "test-context", Path: "/api/v1/pods", Fields: []string{}, Selectors: Selectors{Label: "app=api", Field: "status.phase=Running"}},
+		},
+		{
+			name: "null options and selectors",
+			args: []any{"test-context", "/api/v1/pods", []any{}, map[string]any{"labelSelector": nil}},
+			want: FetchInput{Context: "test-context", Path: "/api/v1/pods", Fields: []string{}},
+		},
+		{
+			name:      "selector not string",
+			args:      []any{"test-context", "/api/v1/pods", []any{}, map[string]any{"labelSelector": 1.0}},
+			wantError: "labelSelector must be a string",
 		},
 		{
 			name:      "ctx not string",
