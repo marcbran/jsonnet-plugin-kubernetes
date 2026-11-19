@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -24,10 +25,16 @@ import (
 )
 
 type informerKey struct {
-	context   string
-	gvr       schema.GroupVersionResource
-	namespace string
-	name      string
+	context       string
+	gvr           schema.GroupVersionResource
+	namespace     string
+	name          string
+	labelSelector string
+	fieldSelector string
+}
+
+func (k informerKey) listKey() informerKey {
+	return informerKey{context: k.context, gvr: k.gvr, namespace: k.namespace, labelSelector: k.labelSelector, fieldSelector: k.fieldSelector}
 }
 
 type watchEntry struct {
@@ -92,7 +99,15 @@ func (c *watchCache) InvocationKey(funcName string, args []any) jpoetwatch.Invoc
 	if err != nil {
 		return jpoetwatch.InvocationKey("kubernetes://invalid/" + path)
 	}
-	return fromInformerKey(informerKey{context: ctxName, gvr: gvr, namespace: namespace, name: name})
+	key := informerKey{context: ctxName, gvr: gvr, namespace: namespace, name: name}
+	if name == "" && len(args) == 4 {
+		selectors, err := parseSelectors(args[3])
+		if err != nil {
+			return jpoetwatch.InvocationKey("kubernetes://invalid/" + path)
+		}
+		key.labelSelector, key.fieldSelector = selectors.Label, selectors.Field
+	}
+	return fromInformerKey(key)
 }
 
 func (c *watchCache) SetChanges(changes func(keys []jpoetwatch.InvocationKey)) {
@@ -108,7 +123,7 @@ func (c *watchCache) Acquire(key jpoetwatch.InvocationKey) (func(), error) {
 		return func() {}, nil
 	}
 
-	listKey := informerKey{context: target.context, gvr: target.gvr, namespace: target.namespace}
+	listKey := target.listKey()
 	if release := c.hold(listKey); release != nil {
 		return release, nil
 	}
@@ -185,11 +200,11 @@ func (c *watchCache) get(ctx context.Context, ctxName string, gvr schema.GroupVe
 	return u.Object, nil
 }
 
-func (c *watchCache) list(ctx context.Context, ctxName string, gvr schema.GroupVersionResource, namespace string) (map[string]any, error) {
+func (c *watchCache) list(ctx context.Context, ctxName string, gvr schema.GroupVersionResource, namespace string, selectors Selectors) (map[string]any, error) {
 	if err := c.ctx.Err(); err != nil {
 		return nil, err
 	}
-	informer, err := c.informerFor(ctx, informerKey{context: ctxName, gvr: gvr, namespace: namespace})
+	informer, err := c.informerFor(ctx, informerKey{context: ctxName, gvr: gvr, namespace: namespace, labelSelector: selectors.Label, fieldSelector: selectors.Field})
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +325,10 @@ func newDynamicInformer(dyn dynamic.Interface, key informerKey) cache.SharedInde
 	tweak := func(opts *metav1.ListOptions) {
 		if key.name != "" {
 			opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", key.name).String()
+			return
 		}
+		opts.LabelSelector = key.labelSelector
+		opts.FieldSelector = key.fieldSelector
 	}
 	var listWatch *cache.ListWatch
 	if key.namespace != "" {
@@ -344,8 +362,7 @@ func (c *watchCache) emit(key informerKey, obj any) {
 	if c.changes == nil {
 		return
 	}
-	listKey := informerKey{context: key.context, gvr: key.gvr, namespace: key.namespace}
-	keys := []jpoetwatch.InvocationKey{fromInformerKey(listKey)}
+	keys := []jpoetwatch.InvocationKey{fromInformerKey(key.listKey())}
 	if name := objectName(obj); name != "" {
 		keys = append(keys, fromInformerKey(informerKey{context: key.context, gvr: key.gvr, namespace: key.namespace, name: name}))
 	}
@@ -364,7 +381,18 @@ func objectName(obj any) string {
 }
 
 func fromInformerKey(key informerKey) jpoetwatch.InvocationKey {
-	return jpoetwatch.InvocationKey(fmt.Sprintf("kubernetes://%s/%s/%s/%s/%s/%s", key.context, key.gvr.Group, key.gvr.Version, key.gvr.Resource, key.namespace, key.name))
+	s := fmt.Sprintf("kubernetes://%s/%s/%s/%s/%s/%s", key.context, key.gvr.Group, key.gvr.Version, key.gvr.Resource, key.namespace, key.name)
+	query := url.Values{}
+	if key.labelSelector != "" {
+		query.Set("labelSelector", key.labelSelector)
+	}
+	if key.fieldSelector != "" {
+		query.Set("fieldSelector", key.fieldSelector)
+	}
+	if len(query) > 0 {
+		s += "?" + query.Encode()
+	}
+	return jpoetwatch.InvocationKey(s)
 }
 
 func toInformerKey(key jpoetwatch.InvocationKey) (informerKey, bool) {
@@ -373,10 +401,22 @@ func toInformerKey(key jpoetwatch.InvocationKey) (informerKey, bool) {
 	if !strings.HasPrefix(s, prefix) {
 		return informerKey{}, false
 	}
-	parts := strings.SplitN(s[len(prefix):], "/", 6)
+	rest, rawQuery, _ := strings.Cut(s[len(prefix):], "?")
+	parts := strings.SplitN(rest, "/", 6)
 	if len(parts) != 6 {
 		return informerKey{}, false
 	}
+	query, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return informerKey{}, false
+	}
 	gvr := schema.GroupVersionResource{Group: parts[1], Version: parts[2], Resource: parts[3]}
-	return informerKey{context: parts[0], gvr: gvr, namespace: parts[4], name: parts[5]}, true
+	return informerKey{
+		context:       parts[0],
+		gvr:           gvr,
+		namespace:     parts[4],
+		name:          parts[5],
+		labelSelector: query.Get("labelSelector"),
+		fieldSelector: query.Get("fieldSelector"),
+	}, true
 }

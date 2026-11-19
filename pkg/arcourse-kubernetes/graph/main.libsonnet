@@ -202,17 +202,25 @@ local generate(resources, group, links=[], globalLinkSpecs=[], namespaceListFiel
     if group == '' then '/api/' + resource.version
     else '/apis/' + group + '/' + resource.version;
 
-  local k8sNeatGet(pathExpr, fieldsExpr=null) =
+  local k8sNeatGet(pathExpr, fieldsExpr=null, optionsExpr=null) =
     call(
       member(member(var('kubernetes'), 'neat'), 'get'),
-      [access(j.Dollar, 'context'), pathExpr] + (if fieldsExpr == null then [] else [fieldsExpr])
+      [access(j.Dollar, 'context'), pathExpr]
+      + (if fieldsExpr == null && optionsExpr == null then [] else [if fieldsExpr == null then j.Array([]) else fieldsExpr])
+      + (if optionsExpr == null then [] else [optionsExpr])
     );
 
-  local k8sGet(pathExpr, fieldsExpr) =
+  local k8sGet(pathExpr, fieldsExpr, optionsExpr=null) =
     call(
       member(var('kubernetes'), 'get'),
-      [access(j.Dollar, 'context'), pathExpr, fieldsExpr]
+      [access(j.Dollar, 'context'), pathExpr, fieldsExpr] + (if optionsExpr == null then [] else [optionsExpr])
     );
+
+  local selectorParams = ['labelSelector', 'fieldSelector'];
+  local selectorOptions = prettyObject([
+    objectField(name, j.Std.get(access(j.Dollar, '_params'), j.String(name)).default(j.Null))
+    for name in selectorParams
+  ], 6);
 
   local staticPath(path) = j.String(path);
   local formatPath(fmt, args) = j.Std.format(j.String(fmt), j.Array(args));
@@ -292,11 +300,16 @@ local generate(resources, group, links=[], globalLinkSpecs=[], namespaceListFiel
     viewFields,
     2
   );
+  local selectorSpecs = j.Field('_paramSpecs', prettyArray([
+    compactLiteral({ name: name, type: 'string', role: 'filter', default: null })
+    for name in selectorParams
+  ], 4));
   local listObject(dataExpr, linkSpecs, columnsExpr=null) = prettyObject(
-    responseFields(dataExpr, true) + [j.Field('linkSpecs', prettyArray([linkSpecEntry(s) for s in linkSpecs], 4)) { Hide: 0 }] +
+    responseFields(dataExpr, true) + [j.Field('linkSpecs', prettyArray([linkSpecEntry(s) for s in linkSpecs], 4)) { Hide: 0 }, selectorSpecs] +
     (if columnsExpr != null then [j.Field('table', prettyObject([
        j.Field('at', j.Array([j.String('items')])),
        j.Field('columns', columnsExpr),
+       j.Field('params', compactLiteral({ open: false })),
      ], 4)) { Hide: 0 }] else []),
     2
   );
@@ -318,7 +331,7 @@ local generate(resources, group, links=[], globalLinkSpecs=[], namespaceListFiel
     [member(member(j.Dollar, 'table'), 'columns'), member(j.Dollar, 'linkSpecs')]
   );
   local listData(resource, pathExpr) =
-    if resourceColumns(resource) != null then k8sGet(pathExpr, tableFields) else k8sNeatGet(pathExpr);
+    if resourceColumns(resource) != null then k8sGet(pathExpr, tableFields, selectorOptions) else k8sNeatGet(pathExpr, null, selectorOptions);
 
   local namespacedAllList(resource) =
     local linkSpecs = [allNamespacesLinkSpec(resource)];

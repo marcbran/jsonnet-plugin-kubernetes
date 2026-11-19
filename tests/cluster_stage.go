@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 type fakeCluster struct {
@@ -94,6 +95,11 @@ func (c *fakeCluster) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	objects = filterByFieldSelector(objects, r.URL.Query().Get("fieldSelector"))
+	objects, err := filterByLabelSelector(objects, r.URL.Query().Get("labelSelector"))
+	if err != nil {
+		writeStatus(w, http.StatusBadRequest, "BadRequest", err.Error())
+		return
+	}
 	if verb(r) == "watch" {
 		c.serveWatch(w, r, objects)
 		return
@@ -152,6 +158,31 @@ func filterByFieldSelector(objects []map[string]any, selector string) []map[stri
 		}
 	}
 	return filtered
+}
+
+func filterByLabelSelector(objects []map[string]any, selector string) ([]map[string]any, error) {
+	if selector == "" {
+		return objects, nil
+	}
+	parsed, err := labels.Parse(selector)
+	if err != nil {
+		return nil, err
+	}
+	var filtered []map[string]any
+	for _, obj := range objects {
+		metadata, _ := obj["metadata"].(map[string]any)
+		objLabels := labels.Set{}
+		raw, _ := metadata["labels"].(map[string]any)
+		for k, v := range raw {
+			if s, ok := v.(string); ok {
+				objLabels[k] = s
+			}
+		}
+		if parsed.Matches(objLabels) {
+			filtered = append(filtered, obj)
+		}
+	}
+	return filtered, nil
 }
 
 func verb(r *http.Request) string {
